@@ -1,0 +1,6 @@
+{
+  "name": "Mini ShaverPro® - Mini Barbeador Elétrico Portátil",
+  "description": "Loja Oficial Mini ShaverPro®. O mini barbeador elétrico de bolso à prova d'água com lâmina rotativa turbo de precisão. Barbeie e depile com corte rente e zero irritação. Frete grátis para todo o Brasil.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
