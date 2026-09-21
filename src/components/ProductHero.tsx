@@ -9,7 +9,8 @@ import {
   ChevronRight, 
   Droplets, 
   Sparkles,
-  Lock
+  Lock,
+  MessageCircle
 } from 'lucide-react';
 import { 
   PRODUCT_GALLERY, 
@@ -404,6 +405,16 @@ export const ProductHero: React.FC<ProductHeroProps> = ({ selectedBundle, onSele
                   Clique para concluir seu pedido com segurança
                 </span>
               </button>
+
+              {/* Aviso destacado pós-pagamento */}
+              <div className="bg-emerald-50 border-2 border-emerald-500 rounded-xl p-3.5 sm:p-4 flex items-start gap-3 shadow-xs">
+                <div className="p-2 bg-emerald-600 text-white rounded-lg shrink-0 mt-0.5 shadow-xs flex items-center justify-center">
+                  <MessageCircle className="w-5 h-5" />
+                </div>
+                <p className="text-xs sm:text-sm font-bold text-emerald-950 leading-snug">
+                  Depois de finalizar o pagamento, entraremos em contato com você por WhatsApp ou e-mail para confirmar o seu pedido e a entrega.
+                </p>
+              </div>
 
               {/* Guarantees Badges */}
               <div className="pt-2 border-t border-slate-100 flex items-center justify-center gap-4 text-[11px] text-slate-500 flex-wrap">
