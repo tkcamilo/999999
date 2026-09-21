@@ -51,6 +51,12 @@ export const PRODUCT_GALLERY = [
   }
 ];
 
+export const KIWIFY_CHECKOUT_URLS: Record<number, string> = {
+  1: 'https://pay.kiwify.com.br/0BO4fdJ',
+  2: 'https://pay.kiwify.com.br/iS4g0bJ',
+  3: 'https://pay.kiwify.com.br/4Exrtne',
+};
+
 export const BUNDLE_OPTIONS: BundleOption[] = [
   {
     id: 'bundle-1',
@@ -61,7 +67,8 @@ export const BUNDLE_OPTIONS: BundleOption[] = [
     discountPercent: 51,
     savings: 72.00,
     unitPrice: 67.90,
-    tag: 'INDIVIDUAL'
+    tag: 'INDIVIDUAL',
+    checkoutUrl: 'https://pay.kiwify.com.br/0BO4fdJ'
   },
   {
     id: 'bundle-2',
@@ -73,7 +80,8 @@ export const BUNDLE_OPTIONS: BundleOption[] = [
     savings: 169.90,
     unitPrice: 54.95,
     tag: 'MAIS VENDIDO 🔥',
-    isPopular: true
+    isPopular: true,
+    checkoutUrl: 'https://pay.kiwify.com.br/iS4g0bJ'
   },
   {
     id: 'bundle-3',
@@ -84,7 +92,8 @@ export const BUNDLE_OPTIONS: BundleOption[] = [
     discountPercent: 65,
     savings: 271.80,
     unitPrice: 49.30,
-    tag: 'MELHOR VALOR ⭐'
+    tag: 'MELHOR VALOR ⭐',
+    checkoutUrl: 'https://pay.kiwify.com.br/4Exrtne'
   }
 ];
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { 
   Star, 
   ShieldCheck, 
@@ -9,131 +9,45 @@ import {
   ChevronRight, 
   Droplets, 
   Sparkles,
-  Lock,
-  QrCode,
-  PackageCheck,
-  MessageCircle,
-  User,
-  AlertCircle,
-  Copy,
-  ArrowLeft
+  Lock
 } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
 import { 
-  PRODUCT_INFO, 
   PRODUCT_GALLERY, 
-  BUNDLE_OPTIONS, 
-  UPSELL_PRODUCT 
+  BUNDLE_OPTIONS,
+  KIWIFY_CHECKOUT_URLS
 } from '../data/productData';
 import { BundleOption } from '../types';
 import { formatBRL } from '../utils/formatters';
-import { generatePixPayload } from '../utils/pix';
+import { playOptionClickSound } from '../utils/audio';
 
-export const ProductHero: React.FC = () => {
+interface ProductHeroProps {
+  selectedBundle: BundleOption;
+  onSelectBundle: (bundle: BundleOption) => void;
+}
+
+export const ProductHero: React.FC<ProductHeroProps> = ({ selectedBundle, onSelectBundle }) => {
   // Gallery state
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
-  // Bundle & Upsell state
-  const [selectedBundle, setSelectedBundle] = useState<BundleOption>(BUNDLE_OPTIONS[1]); // Default to 2x (Mais vendido)
-  const [includeUpsell, setIncludeUpsell] = useState<boolean>(false);
-
-  // Checkout inputs state
-  const [fullName, setFullName] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'pix' | 'contra_entrega'>('pix');
-  const [fullNameError, setFullNameError] = useState('');
-  const [showPixPayment, setShowPixPayment] = useState<boolean>(false);
-  const [copiedPix, setCopiedPix] = useState<boolean>(false);
-
   // Calculations
-  const baseSubtotal = selectedBundle.salePrice + (includeUpsell ? UPSELL_PRODUCT.salePrice : 0);
-  const pixDiscount = paymentMethod === 'pix' ? baseSubtotal * 0.05 : 0;
+  const baseSubtotal = selectedBundle.salePrice;
+  const pixDiscount = baseSubtotal * 0.05;
   const totalAmount = baseSubtotal - pixDiscount;
-  const totalRegular = selectedBundle.regularPrice + (includeUpsell ? UPSELL_PRODUCT.regularPrice : 0);
-  const totalSavings = totalRegular - totalAmount;
+  const totalRegular = selectedBundle.regularPrice;
 
-  // Generate PIX BR Code Payload (Banco Central EMV standard)
-  const pixCode = useMemo(() => {
-    return generatePixPayload({
-      key: '75675d46-2ea3-47d4-9938-69124955b807',
-      name: 'ShaverPro Oficial',
-      city: 'SAO PAULO',
-      amount: totalAmount,
-      txId: '***'
-    });
-  }, [totalAmount]);
-
-  // Copy PIX Code to clipboard
-  const handleCopyPix = () => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(pixCode);
-    } else {
-      const textarea = document.createElement('textarea');
-      textarea.value = pixCode;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-    }
-    setCopiedPix(true);
-    setTimeout(() => setCopiedPix(false), 2500);
+  // Handle bundle selection with audio click sound
+  const handleSelectBundle = (bundle: BundleOption) => {
+    playOptionClickSound();
+    onSelectBundle(bundle);
   };
 
-  // Submit Handler: triggers PIX Payment Screen or direct WhatsApp for 'Na Entrega'
-  const handleComprarAgora = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-
-    if (!fullName.trim() || fullName.trim().length < 3) {
-      setFullNameError('Por favor, digite seu nome completo');
-      const el = document.getElementById('checkout-offer-box');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-    setFullNameError('');
-
-    if (paymentMethod === 'pix') {
-      setShowPixPayment(true);
-      const el = document.getElementById('checkout-offer-box');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-
-    // Payment: Na Entrega
-    const kitVariation = `${selectedBundle.name} (${selectedBundle.title})${includeUpsell ? ' + Lâmina de Reposição Extra' : ''}`;
-    const valorFinal = formatBRL(totalAmount);
-
-    const message = `Olá! Quero comprar o ShaverPro 🛒
-
-📦 Produto: ShaverPro - Mini Barbeador Elétrico (${kitVariation})
-💰 Valor Final: ${valorFinal}
-💳 Forma de pagamento: Na Entrega
-
-👤 Nome: ${fullName.trim()}
-
-Vou te enviar meu endereço aqui pelo WhatsApp para receber o produto!
-
-Confirmo que pago na entrega ao receber o produto.`.trim();
-
-    const link = `https://wa.me/573017528615?text=${encodeURIComponent(message)}`;
-    window.open(link, '_blank');
-  };
-
-  // WhatsApp Confirmation for PIX
-  const handleConfirmarPixWhatsApp = () => {
-    const kitVariation = `${selectedBundle.name} (${selectedBundle.title})${includeUpsell ? ' + Lâmina de Reposição Extra' : ''}`;
-    const valorFinal = formatBRL(totalAmount);
-    const nomePix = fullName.trim() || '[a pessoa vai preencher aqui o nome que usou no pagamento]';
-
-    const message = `Olá! Acabei de pagar o PIX do ShaverPro 💳
-
-📦 Produto: ${kitVariation}
-💰 Valor pago: ${valorFinal}
-
-👤 Nome usado no PIX: ${nomePix}
-
-Aguardo a confirmação para envio!`.trim();
-
-    const link = `https://wa.me/573017528615?text=${encodeURIComponent(message)}`;
-    window.open(link, '_blank');
+  // Redirect to Kiwify checkout in the same tab
+  const handleComprarAgora = () => {
+    const checkoutUrl =
+      selectedBundle.checkoutUrl ||
+      KIWIFY_CHECKOUT_URLS[selectedBundle.units] ||
+      'https://pay.kiwify.com.br/iS4g0bJ';
+    window.location.href = checkoutUrl;
   };
 
   return (
@@ -297,7 +211,7 @@ Aguardo a confirmação para envio!`.trim();
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Pague via <span className="text-emerald-400 font-bold">PIX (+5% OFF)</span> ou com <span className="text-amber-400 font-bold">Pagamento na Entrega</span>
+                    Pague com <span className="text-emerald-400 font-bold">PIX (+5% OFF)</span> ou Cartão com Envio Imediato
                   </p>
                 </div>
 
@@ -374,7 +288,7 @@ Aguardo a confirmação para envio!`.trim();
                   return (
                     <div
                       key={bundle.id}
-                      onClick={() => setSelectedBundle(bundle)}
+                      onClick={() => handleSelectBundle(bundle)}
                       className={`relative p-3.5 sm:p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 ${
                         isSelected 
                           ? 'border-blue-600 bg-blue-50/60 shadow-md ring-2 ring-blue-500/20' 
@@ -427,311 +341,69 @@ Aguardo a confirmação para envio!`.trim();
               </div>
             </div>
 
-            {/* ================= STEP 2: ORDER BUMP / UPSELL ================= */}
-            <div className="bg-amber-50/80 border-2 border-amber-300 rounded-2xl p-4 relative shadow-xs">
-              <div className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  id="upsell-checkbox"
-                  checked={includeUpsell}
-                  onChange={(e) => setIncludeUpsell(e.target.checked)}
-                  className="mt-1 w-5 h-5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
-                />
-                <div className="flex-1 cursor-pointer" onClick={() => setIncludeUpsell(!includeUpsell)}>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="bg-amber-400 text-slate-950 text-[10px] font-black uppercase px-2 py-0.5 rounded-md">
-                      {UPSELL_PRODUCT.badge}
-                    </span>
-                    <span className="text-xs font-bold text-slate-900">
-                      Oportunidade Única no Checkout!
-                    </span>
-                  </div>
+            {/* ================= RESUMO DO PEDIDO & BOTÃO COMPRAR AGORA ================= */}
+            <div id="checkout-offer-box" className="bg-white rounded-2xl p-5 sm:p-6 border-2 border-emerald-500 shadow-xl space-y-4">
+              <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                <h3 className="text-base font-black text-slate-950 uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center font-black">
+                    ✓
+                  </span>
+                  Resumo do Pedido
+                </h3>
+                <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
+                  <Truck className="w-3.5 h-3.5" /> Frete Grátis Correios
+                </span>
+              </div>
 
-                  <h4 className="font-extrabold text-sm sm:text-base text-slate-950 mt-1">
-                    Adicionar {UPSELL_PRODUCT.title} por apenas{' '}
-                    <span className="text-emerald-700 font-black">{formatBRL(UPSELL_PRODUCT.salePrice)}</span>{' '}
-                    <span className="text-xs line-through text-slate-400">({formatBRL(UPSELL_PRODUCT.regularPrice)})</span>
-                  </h4>
-                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                    {UPSELL_PRODUCT.subtitle}
-                  </p>
+              {/* Pricing breakdown */}
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 text-xs space-y-2.5">
+                <div className="flex justify-between text-slate-700">
+                  <span className="font-semibold">{selectedBundle.name}</span>
+                  <span className="font-bold text-slate-900">{formatBRL(selectedBundle.salePrice)}</span>
                 </div>
 
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-amber-200 bg-white shrink-0">
-                  <img
-                    src={UPSELL_PRODUCT.image}
-                    alt={UPSELL_PRODUCT.title}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover"
-                  />
+                <div className="flex justify-between text-emerald-700 font-bold bg-emerald-100/50 p-2 rounded-lg">
+                  <span>Desconto Especial PIX (5% OFF)</span>
+                  <span>-{formatBRL(pixDiscount)}</span>
+                </div>
+
+                <div className="flex justify-between text-slate-600">
+                  <span>Frete Expresso para Todo Brasil</span>
+                  <span className="text-emerald-700 font-black uppercase">GRÁTIS (R$ 0,00)</span>
+                </div>
+
+                <div className="border-t border-slate-200 pt-3 mt-2 flex justify-between items-baseline">
+                  <div>
+                    <span className="font-black text-sm text-slate-950 block">VALOR TOTAL:</span>
+                    <span className="text-[11px] text-slate-500">
+                      com 5% de desconto especial no PIX
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-2xl sm:text-3xl font-black text-emerald-600 block">
+                      {formatBRL(totalAmount)}
+                    </span>
+                    <span className="text-xs text-slate-400 line-through">
+                      {formatBRL(totalRegular)}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* ================= STEP 2: SINGLE-PAGE CHECKOUT & WHATSAPP REDIRECT ================= */}
-            <div id="checkout-offer-box" className="bg-white rounded-2xl p-5 sm:p-6 border-2 border-emerald-500 shadow-xl space-y-4">
-              {showPixPayment ? (
-                /* ================= TELA DE PAGAMENTO PIX ================= */
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <h3 className="text-base font-black text-slate-950 uppercase tracking-wider flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center font-black">
-                        ✓
-                      </span>
-                      Pagamento via PIX
-                    </h3>
-                    <button
-                      type="button"
-                      onClick={() => setShowPixPayment(false)}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
-                    >
-                      <ArrowLeft className="w-3.5 h-3.5" />
-                      <span>Alterar pedido</span>
-                    </button>
-                  </div>
-
-                  {/* 📦 Resumo do seu pedido: */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs space-y-1.5">
-                    <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5">
-                      <span>📦</span> Resumo do seu pedido:
-                    </h4>
-                    <div className="space-y-1 text-slate-700 pl-1">
-                      <p>
-                        <span className="font-bold text-slate-900">Produto:</span> {selectedBundle.name} ({selectedBundle.title}){includeUpsell ? ' + Lâmina de Reposição Extra' : ''}
-                      </p>
-                      <p>
-                        <span className="font-bold text-slate-900">Valor:</span> <span className="text-emerald-600 font-extrabold text-base">{formatBRL(totalAmount)}</span>
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* 🔑 Pague com PIX: */}
-                  <div className="bg-white border-2 border-emerald-500/80 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
-                    <h4 className="font-black text-sm sm:text-base text-slate-900 flex items-center justify-center gap-1.5 text-center">
-                      <span>🔑</span> Pague com PIX:
-                    </h4>
-
-                    {/* [QR Code] */}
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="p-3 bg-white border border-slate-200 rounded-2xl shadow-inner inline-block">
-                        <QRCodeSVG
-                          value={pixCode}
-                          size={190}
-                          level="M"
-                          includeMargin={true}
-                        />
-                      </div>
-                      <span className="text-[11px] text-slate-500 mt-2 font-medium">
-                        Abra o app do seu banco e escaneie o código acima
-                      </span>
-                    </div>
-
-                    {/* [Código Copia e Cola + botão "Copiar"] */}
-                    <div className="space-y-1.5 text-left pt-2 border-t border-slate-100">
-                      <label className="text-xs font-bold text-slate-700 block">
-                        Código Copia e Cola:
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          readOnly
-                          value={pixCode}
-                          aria-label="Código PIX Copia e Cola"
-                          className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-700 font-mono select-all truncate focus:outline-none"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleCopyPix}
-                          className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
-                        >
-                          {copiedPix ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
-                          <span>{copiedPix ? 'Copiado!' : 'Copiar'}</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Mensagem pós-pagamento */}
-                  <p className="text-xs sm:text-sm text-slate-700 font-semibold text-center bg-amber-50/80 border border-amber-200/90 rounded-xl p-3.5 leading-relaxed">
-                    Depois do pagamento, por favor entre em contato com a gente para confirmarmos o pagamento e fazer o envio do seu produto.
-                  </p>
-
-                  {/* [Botão: Confirmar Pagamento no WhatsApp] */}
-                  <button
-                    type="button"
-                    id="confirm-payment-whatsapp"
-                    onClick={handleConfirmarPixWhatsApp}
-                    className="w-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:from-emerald-700 active:to-teal-700 text-white font-black text-base sm:text-lg py-4 px-6 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer group"
-                  >
-                    <MessageCircle className="w-5 h-5 fill-white transition-transform group-hover:scale-110" />
-                    <span>Confirmar Pagamento no WhatsApp</span>
-                  </button>
-
-                  <div className="text-center pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setShowPixPayment(false)}
-                      className="text-xs text-slate-500 hover:text-slate-800 font-semibold underline transition-colors cursor-pointer"
-                    >
-                      ← Alterar kit ou dados do pedido
-                    </button>
-                  </div>
+              {/* Pulsing High-Converting Action Button */}
+              <button
+                type="button"
+                id="buy-now-button"
+                onClick={handleComprarAgora}
+                className="w-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:from-emerald-700 active:to-teal-700 text-white font-black text-lg sm:text-xl py-4 sm:py-5 px-6 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:-translate-y-0.5 flex flex-col items-center justify-center cursor-pointer group"
+              >
+                <div className="flex items-center gap-2">
+                  <span>COMPRAR AGORA</span>
                 </div>
-              ) : (
-                /* ================= FORMULÁRIO DE CHECKOUT ================= */
-                <>
-                  <div className="border-b border-slate-100 pb-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-base font-black text-slate-950 uppercase tracking-wider flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center font-black">
-                          2
-                        </span>
-                        Dados de Contato & Pagamento
-                      </h3>
-                      <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
-                        <Truck className="w-3.5 h-3.5" /> Frete Grátis Correios
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Informe seu nome e finalize o pedido com facilidade.
-                    </p>
-                  </div>
-
-                  {/* Form with Name and Payment Method */}
-                  <form onSubmit={handleComprarAgora} className="space-y-4">
-                    {/* Nome Completo */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-800 mb-1">
-                        Nome Completo <span className="text-rose-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                          <User className="w-4 h-4" />
-                        </div>
-                        <input
-                          type="text"
-                          placeholder="Ex: Carlos Eduardo de Oliveira"
-                          value={fullName}
-                          onChange={(e) => {
-                            setFullName(e.target.value);
-                            if (fullNameError) setFullNameError('');
-                          }}
-                          className={`w-full pl-10 pr-3.5 py-3 rounded-xl border text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors ${
-                            fullNameError ? 'border-rose-400 bg-rose-50/30' : 'border-slate-300 bg-slate-50/50'
-                          }`}
-                        />
-                      </div>
-                      {fullNameError && (
-                        <p className="text-[11px] text-rose-600 mt-1 font-semibold flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" /> {fullNameError}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Escolha da Forma de Pagamento */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-800 mb-2">
-                        Forma de Pagamento Preferida <span className="text-rose-500">*</span>
-                      </label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setPaymentMethod('pix')}
-                          className={`p-3.5 rounded-xl border-2 text-center transition-all cursor-pointer relative ${
-                            paymentMethod === 'pix'
-                              ? 'border-emerald-500 bg-emerald-50/70 text-emerald-950 font-bold shadow-xs ring-2 ring-emerald-100'
-                              : 'border-slate-200 bg-slate-50 hover:bg-white text-slate-700'
-                          }`}
-                        >
-                          <span className="absolute -top-2 right-2 bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider">
-                            +5% OFF
-                          </span>
-                          <QrCode className="w-5 h-5 mx-auto mb-1 text-emerald-600" />
-                          <span className="block text-xs font-black">PIX</span>
-                          <span className="text-[10px] text-emerald-700 font-semibold block leading-tight">Instantâneo (-5% OFF)</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setPaymentMethod('contra_entrega')}
-                          className={`p-3.5 rounded-xl border-2 text-center transition-all cursor-pointer relative ${
-                            paymentMethod === 'contra_entrega'
-                              ? 'border-amber-500 bg-amber-50/70 text-amber-950 font-bold shadow-xs ring-2 ring-amber-100'
-                              : 'border-slate-200 bg-slate-50 hover:bg-white text-slate-700'
-                          }`}
-                        >
-                          <PackageCheck className="w-5 h-5 mx-auto mb-1 text-amber-600" />
-                          <span className="block text-xs font-black">Na Entrega</span>
-                          <span className="text-[10px] text-slate-600 font-semibold block leading-tight">Pague ao Receber</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Pricing breakdown */}
-                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 text-xs space-y-2">
-                      <div className="flex justify-between text-slate-700">
-                        <span className="font-semibold">{selectedBundle.name}</span>
-                        <span className="font-bold text-slate-900">{formatBRL(selectedBundle.salePrice)}</span>
-                      </div>
-
-                      {includeUpsell && (
-                        <div className="flex justify-between text-emerald-700 font-semibold">
-                          <span>+ {UPSELL_PRODUCT.title}</span>
-                          <span>{formatBRL(UPSELL_PRODUCT.salePrice)}</span>
-                        </div>
-                      )}
-
-                      {paymentMethod === 'pix' && (
-                        <div className="flex justify-between text-emerald-700 font-bold bg-emerald-100/50 p-1.5 rounded-lg">
-                          <span>Desconto Especial PIX (5% OFF)</span>
-                          <span>-{formatBRL(pixDiscount)}</span>
-                        </div>
-                      )}
-
-                      <div className="flex justify-between text-slate-600">
-                        <span>Frete Expresso para Todo Brasil</span>
-                        <span className="text-emerald-700 font-black uppercase">GRÁTIS (R$ 0,00)</span>
-                      </div>
-
-                      <div className="border-t border-slate-200 pt-2.5 mt-2 flex justify-between items-baseline">
-                        <div>
-                          <span className="font-black text-sm text-slate-950 block">VALOR TOTAL:</span>
-                          <span className="text-[10px] text-slate-500">
-                            {paymentMethod === 'pix' ? 'com 5% de desconto especial via PIX' : 'pago com total segurança na entrega'}
-                          </span>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-2xl font-black text-emerald-600 block">
-                            {formatBRL(totalAmount)}
-                          </span>
-                          <span className="text-xs text-slate-400 line-through">
-                            {formatBRL(totalRegular)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Pulsing High-Converting Action Button */}
-                    <button
-                      type="submit"
-                      id="buy-now-button"
-                      className="w-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:from-emerald-700 active:to-teal-700 text-white font-black text-base sm:text-lg py-4 px-6 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:-translate-y-0.5 flex flex-col items-center justify-center cursor-pointer group"
-                    >
-                      <div className="flex items-center gap-2">
-                        {paymentMethod === 'pix' ? (
-                          <QrCode className="w-5 h-5 text-white transition-transform group-hover:scale-110" />
-                        ) : (
-                          <MessageCircle className="w-5 h-5 fill-white transition-transform group-hover:scale-110" />
-                        )}
-                        <span>COMPRAR AGORA</span>
-                      </div>
-                      <span className="text-xs text-emerald-100 font-normal mt-0.5">
-                        {paymentMethod === 'pix' ? 'Gerar código PIX com 5% de desconto' : 'Finalizar pedido direto no WhatsApp oficial'}
-                      </span>
-                    </button>
-                  </form>
-                </>
-              )}
+                <span className="text-xs text-emerald-100 font-normal mt-0.5">
+                  Clique para concluir seu pedido com segurança
+                </span>
+              </button>
 
               {/* Guarantees Badges */}
               <div className="pt-2 border-t border-slate-100 flex items-center justify-center gap-4 text-[11px] text-slate-500 flex-wrap">

@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, ShieldCheck, Zap } from 'lucide-react';
-import { BUNDLE_OPTIONS } from '../data/productData';
+import { Truck } from 'lucide-react';
+import { BundleOption } from '../types';
 import { formatBRL } from '../utils/formatters';
 
 interface StickyBottomBarProps {
+  selectedBundle: BundleOption;
   onOrderClick: () => void;
 }
 
-export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({ onOrderClick }) => {
+export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({ selectedBundle, onOrderClick }) => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -26,25 +27,23 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({ onOrderClick }
 
   if (!isVisible) return null;
 
-  const baseBundle = BUNDLE_OPTIONS[0];
-
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 text-white py-3 px-4 shadow-2xl transition-all duration-300 animate-in slide-in-from-bottom">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
         {/* Product & Price details */}
         <div className="flex items-center gap-3">
           <div className="hidden sm:block">
-            <p className="text-xs font-black text-white">Mini ShaverPro® Portátil</p>
+            <p className="text-xs font-black text-white">{selectedBundle.name}</p>
             <p className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
               <Truck className="w-3 h-3" /> Frete Grátis para todo o Brasil
             </p>
           </div>
           <div>
             <span className="text-lg sm:text-xl font-black text-emerald-400">
-              A partir de {formatBRL(baseBundle.salePrice)}
+              {formatBRL(selectedBundle.salePrice)}
             </span>
             <span className="text-xs text-slate-400 line-through ml-2">
-              {formatBRL(baseBundle.regularPrice)}
+              {formatBRL(selectedBundle.regularPrice)}
             </span>
           </div>
         </div>

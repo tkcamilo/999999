@@ -9,6 +9,7 @@ export interface BundleOption {
   isPopular?: boolean;
   savings: number;
   unitPrice: number;
+  checkoutUrl?: string;
 }
 
 export interface UpsellItem {

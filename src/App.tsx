@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Header } from './components/Header';
 import { ProductHero } from './components/ProductHero';
 import { FeaturesShowcase } from './components/FeaturesShowcase';
@@ -13,30 +13,39 @@ import { CustomerReviews } from './components/CustomerReviews';
 import { FAQSection } from './components/FAQSection';
 import { StickyBottomBar } from './components/StickyBottomBar';
 import { Footer } from './components/Footer';
+import { BUNDLE_OPTIONS, KIWIFY_CHECKOUT_URLS } from './data/productData';
+import { BundleOption } from './types';
 
 export default function App() {
-  const scrollToCheckout = () => {
-    const formElement = document.getElementById('checkout-offer-box');
-    if (formElement) {
-      formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+  // Option 2x selected by default
+  const [selectedBundle, setSelectedBundle] = useState<BundleOption>(BUNDLE_OPTIONS[1]);
+
+  const handleCheckout = () => {
+    const targetUrl =
+      selectedBundle.checkoutUrl ||
+      KIWIFY_CHECKOUT_URLS[selectedBundle.units] ||
+      'https://pay.kiwify.com.br/iS4g0bJ';
+    window.location.href = targetUrl;
   };
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-slate-900 flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
       {/* Header & Urgent Announcement */}
-      <Header onOrderClick={scrollToCheckout} />
+      <Header onOrderClick={handleCheckout} />
 
       {/* Main Product Page Content */}
       <main className="flex-1">
-        {/* Hero Section with Integrated Single-Page WhatsApp Checkout */}
-        <ProductHero />
+        {/* Hero Section with Options and Checkout Button */}
+        <ProductHero
+          selectedBundle={selectedBundle}
+          onSelectBundle={setSelectedBundle}
+        />
 
         {/* 4D Technology & Body Zones Showcase */}
         <FeaturesShowcase />
 
         {/* Unboxing & What's In The Box */}
-        <KitBreakdown onOrderClick={scrollToCheckout} />
+        <KitBreakdown onOrderClick={handleCheckout} />
 
         {/* Comparison Table */}
         <ComparisonTable />
@@ -49,7 +58,10 @@ export default function App() {
       </main>
 
       {/* Floating Bottom Sticky Bar */}
-      <StickyBottomBar onOrderClick={scrollToCheckout} />
+      <StickyBottomBar
+        selectedBundle={selectedBundle}
+        onOrderClick={handleCheckout}
+      />
 
       {/* Footer with Contact & Legal details */}
       <Footer />
